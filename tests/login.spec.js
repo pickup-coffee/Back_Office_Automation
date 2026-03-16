@@ -1,5 +1,6 @@
 // @ts-check
 const { test, expect } = require('./fixtures/base');
+const { ENV_KEYS } = require('../config/constants');
 
 test.describe('Back Office Login', () => {
   test('login page loads and shows log in option', async ({ loginPage }) => {
@@ -19,10 +20,10 @@ test.describe('Back Office Login', () => {
     loginPage,
     dashboardPage,
   }) => {
-    const mobile = process.env.BO_MOBILE || process.env.TEST_MOBILE;
-    const password = process.env.BO_PASSWORD || process.env.TEST_PASSWORD;
+    const mobile = process.env[ENV_KEYS.MOBILE] || process.env[ENV_KEYS.MOBILE_ALT];
+    const password = process.env[ENV_KEYS.PASSWORD] || process.env[ENV_KEYS.PASSWORD_ALT];
 
-    test.skip(!mobile || !password, 'Set BO_MOBILE and BO_PASSWORD to run login flow');
+    test.skip(!mobile || !password, `Set ${ENV_KEYS.MOBILE} and ${ENV_KEYS.PASSWORD} to run login flow`);
 
     await loginPage.goto();
     await loginPage.login(mobile, password || '');

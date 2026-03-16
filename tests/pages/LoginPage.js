@@ -1,50 +1,55 @@
 // @ts-check
 const { expect } = require('@playwright/test');
-
-const BASE_PATH = '/';
+const { BasePage } = require('./BasePage');
+const { PATHS } = require('../../config/constants');
 
 /**
- * Page object for the Back Office login page.
- * https://staging.bo.pickup-coffee.net/
+ * Page Object for the Back Office Login page.
+ * Encapsulates locators and actions for https://staging.bo.pickup-coffee.net/
  */
-class LoginPage {
+class LoginPage extends BasePage {
   /**
    * @param {import('@playwright/test').Page} page
    */
   constructor(page) {
-    this.page = page;
-    this.url = BASE_PATH;
+    super(page);
+    this.path = PATHS.LOGIN;
   }
 
-  async goto() {
-    await this.page.goto(this.url);
-    await this.page.waitForLoadState('networkidle');
-  }
-
-  /**
-   * Mobile number input (may be inside a wrapper with country code +63).
-   */
+  /** Locator: mobile number input */
   get mobileInput() {
-    return this.page.getByPlaceholder(/mobile number/i).or(
-      this.page.locator('input[type="tel"]').or(this.page.locator('input[name*="mobile"]'))
-    ).first();
+    return this.page
+      .getByPlaceholder(/mobile number/i)
+      .or(this.page.locator('input[type="tel"]').or(this.page.locator('input[name*="mobile"]')))
+      .first();
+  }
+
+  /** Locator: password input (if present) */
+  get passwordInput() {
+    return this.page
+      .getByPlaceholder(/password/i)
+      .or(this.page.locator('input[type="password"]'))
+      .first();
+  }
+
+  /** Locator: Log in button or link */
+  get loginButton() {
+    return this.page
+      .getByRole('button', { name: /log in/i })
+      .or(this.page.getByRole('link', { name: /log in/i }))
+      .first();
+  }
+
+  /** Navigate to the login page */
+  async goto() {
+    await super.goto(this.path);
   }
 
   /**
-   * Password input if present (some back offices use OTP only).
+   * Perform login with mobile (and optional password).
+   * @param {string} mobile
+   * @param {string} [password]
    */
-  get passwordInput() {
-    return this.page.getByPlaceholder(/password/i).or(
-      this.page.locator('input[type="password"]')
-    ).first();
-  }
-
-  get loginButton() {
-    return this.page.getByRole('button', { name: /log in/i }).or(
-      this.page.getByRole('link', { name: /log in/i })
-    ).first();
-  }
-
   async login(mobile, password = '') {
     await this.mobileInput.fill(mobile);
     if (password) {
@@ -54,12 +59,14 @@ class LoginPage {
     await this.loginButton.click();
   }
 
+  /** Assert: login button is visible (page loaded) */
   async expectLoginVisible() {
     await expect(this.loginButton).toBeVisible();
   }
 
+  /** Assert: current page is the login page */
   async expectOnLoginPage() {
-    await expect(this.page).toHaveURL(new RegExp(this.url));
+    await expect(this.page).toHaveURL(new RegExp(this.path));
     await this.expectLoginVisible();
   }
 }
