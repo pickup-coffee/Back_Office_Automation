@@ -4,14 +4,7 @@ const { DashboardPage } = require('./DashboardPage');
 
 /**
  * Central factory for all Back Office page objects.
- *
- * Usage in tests (via fixtures):
- *   const { test } = require('../fixtures/base');
- *
- *   test('example', async ({ pageFactory }) => {
- *     const loginPage = pageFactory.loginPage;
- *     await loginPage.goto();
- *   });
+ * Use via fixtures in tests.
  */
 class PageFactory {
   /**
@@ -43,4 +36,3 @@ class PageFactory {
 }
 
 module.exports = { PageFactory };
-

@@ -10,6 +10,8 @@ module.exports = defineConfig({
   workers: process.env.CI ? 1 : undefined,
   timeout: TIMEOUTS.DEFAULT,
   expect: { timeout: TIMEOUTS.ASSERTION },
+  globalSetup: require.resolve('./setup/globalSetup.js'),
+  globalTeardown: require.resolve('./setup/globalTeardown.js'),
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
     baseURL: BASE_URL,

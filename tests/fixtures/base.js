@@ -1,10 +1,13 @@
 // @ts-check
+const path = require('path');
+const fs = require('fs');
 const playwrightTest = require('@playwright/test');
-const { PageFactory } = require('../pages/PageFactory');
+const { PageFactory } = require('../../pages/PageFactory');
 const { ENV_KEYS } = require('../../config/constants');
 
 /**
  * Playwright test fixtures using Page Object Model and Page Factory.
+ * Includes setup/teardown hooks and screenshot on failure.
  */
 exports.test = playwrightTest.test.extend({
   pageFactory: async ({ page }, use) => {
@@ -32,3 +35,18 @@ exports.test = playwrightTest.test.extend({
 });
 
 exports.expect = playwrightTest.expect;
+
+// Setup: runs before each test
+playwrightTest.test.beforeEach(async () => {
+  // Per-test setup (e.g. reset state, log)
+});
+
+// Teardown: runs after each test; captures screenshot on failure
+playwrightTest.test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status !== testInfo.expectedStatus && page) {
+    const dir = path.join(process.cwd(), 'test-results', 'screenshots');
+    fs.mkdirSync(dir, { recursive: true });
+    const name = `${testInfo.project.name}_${testInfo.title.replace(/[^a-z0-9]/gi, '_')}.png`;
+    await page.screenshot({ path: path.join(dir, name) });
+  }
+});

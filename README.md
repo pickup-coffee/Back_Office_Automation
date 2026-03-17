@@ -1,6 +1,6 @@
 # Back Office Automation (Pickup Coffee)
 
-Industry-standard **UI test automation** for the Pickup Coffee Back Office staging site, built with [Playwright](https://playwright.dev/) (JavaScript), **Page Object Model (POM)**, and a **Page Factory** for maintainability and scalability.
+Industry-standard **UI test automation** for the Pickup Coffee Back Office staging site, built with [Playwright](https://playwright.dev/) (JavaScript), **Page Object Model (POM)**, and a **Page Factory**. Tests and page objects are separated; config, setup, and teardown are centralized.
 
 **Target application:** https://staging.bo.pickup-coffee.net/
 
@@ -12,6 +12,8 @@ Industry-standard **UI test automation** for the Pickup Coffee Back Office stagi
 - [Running tests](#running-tests)
 - [Page Object Model (POM)](#page-object-model-pom)
 - [Project structure](#project-structure)
+- [Setup and teardown](#setup-and-teardown)
+- [Screenshot on failure](#screenshot-on-failure)
 - [Configuration](#configuration)
 - [Authenticated tests](#authenticated-tests)
 - [Adding new tests and page objects](#adding-new-tests-and-page-objects)
@@ -54,43 +56,39 @@ BASE_URL=https://staging.bo.pickup-coffee.net npm test
 
 ## Page Object Model (POM)
 
-This framework uses the **Page Object Model** so that:
+This framework uses the **Page Object Model** with a clear separation:
 
-- **Locators** live in one place (page classes), not scattered in tests.
-- **Actions** (e.g. login, navigate) are reusable methods on page objects.
-- **Tests** stay short and readable and focus on behavior, not selectors.
+- **`pages/`** – Page objects (locators and actions); tests never import these directly.
+- **`tests/`** – Test specs only; they use fixtures that provide page objects.
 
 ### Concepts
 
-1. **Base Page (`BasePage.js`)**  
-   All page objects extend `BasePage`. It holds the Playwright `page` instance and common helpers (e.g. `goto(path)`, `waitForLoadState()`).
+1. **Base Page (`pages/BasePage.js`)**  
+   All page objects extend `BasePage`. It holds the Playwright `page` instance and common helpers (`goto(path)`, `waitForLoadState()`).
 
-2. **Page Objects (e.g. `LoginPage.js`, `DashboardPage.js`)**  
-   Each class represents one screen or logical area:
-   - **Locators** exposed as getters (e.g. `mobileInput`, `loginButton`).
+2. **Page Objects (`pages/LoginPage.js`, `pages/DashboardPage.js`)**  
+   Each class represents one screen:
+   - **Locators** as getters (e.g. `mobileInput`, `loginButton`).
    - **Actions** as async methods (e.g. `login(mobile, password)`, `goToRoles()`).
-   - **Assertions** that belong to the page can be helper methods (e.g. `expectOnLoginPage()`, `expectLoggedIn()`).
+   - **Assertions** as helper methods (e.g. `expectOnLoginPage()`, `expectLoggedIn()`).
 
-3. **Page Factory (`PageFactory.js`)**  
-   A single entry point that creates and caches page objects for the same browser `page`. Tests get `loginPage`, `dashboardPage`, etc. via fixtures that delegate to the factory, so each test receives the same page context.
+3. **Page Factory (`pages/PageFactory.js`)**  
+   Creates and caches page objects. Tests receive `loginPage`, `dashboardPage`, etc. via fixtures.
 
 4. **Fixtures (`tests/fixtures/base.js`)**  
-   Playwright fixtures expose:
-   - `pageFactory` – use `pageFactory.loginPage`, `pageFactory.dashboardPage`, etc.
-   - `loginPage`, `dashboardPage` – convenience fixtures that use the factory.
-   - `authenticatedPage` – a pre-logged-in page when credentials are set.
+   Exposes `pageFactory`, `loginPage`, `dashboardPage`, `authenticatedPage`, plus setup/teardown hooks.
 
 ### Flow
 
 ```
-Test
-  → uses fixture (e.g. loginPage, dashboardPage)
-    → fixture uses PageFactory
-      → PageFactory returns/caches LoginPage, DashboardPage, …
-        → each page object extends BasePage and uses config (constants)
+Test (tests/*.spec.js)
+  → uses fixture (loginPage, dashboardPage)
+    → fixture uses PageFactory (pages/PageFactory.js)
+      → PageFactory returns LoginPage, DashboardPage (pages/)
+        → each page extends BasePage, uses config (config/constants.js)
 ```
 
-### Example: test using POM
+### Example
 
 ```javascript
 const { test, expect } = require('./fixtures/base');
@@ -117,30 +115,54 @@ test('navigate to roles after login', async ({ loginPage, dashboardPage }) => {
 BackOffice_Automation/
 ├── config/
 │   └── constants.js          # BASE_URL, PATHS, ENV_KEYS, TIMEOUTS
-├── playwright.config.js      # Playwright config (uses config/constants)
-├── package.json
-├── README.md
-├── tests/
+├── pages/                    # Page Object Model (separate from tests)
+│   ├── BasePage.js           # Base class for all page objects
+│   ├── PageFactory.js        # Creates/caches page objects
+│   ├── LoginPage.js          # Login screen POM
+│   └── DashboardPage.js      # Dashboard (post-login) POM
+├── setup/
+│   ├── globalSetup.js        # Runs once before all tests
+│   └── globalTeardown.js     # Runs once after all tests
+├── tests/                    # Test specs only
 │   ├── fixtures/
-│   │   └── base.js           # POM + Page Factory fixtures
-│   ├── pages/
-│   │   ├── BasePage.js       # Base class for all page objects
-│   │   ├── PageFactory.js    # Creates/caches page objects
-│   │   ├── LoginPage.js      # Login screen POM
-│   │   └── DashboardPage.js  # Dashboard (post-login) POM
+│   │   └── base.js           # POM fixtures, setup/teardown, screenshot on failure
 │   ├── login.spec.js
 │   └── dashboard.spec.js
-└── .gitignore
+├── playwright.config.js
+├── package.json
+└── README.md
 ```
 
 | Path | Purpose |
-|------|--------|
-| `config/constants.js` | Central config: base URL, paths, env key names, timeouts |
-| `tests/pages/BasePage.js` | Base page object; shared `page`, `goto()`, `waitForLoadState()` |
-| `tests/pages/PageFactory.js` | Factory that returns/caches `LoginPage`, `DashboardPage`, etc. |
-| `tests/pages/LoginPage.js` | Login page: locators + `login()`, `expectOnLoginPage()` |
-| `tests/pages/DashboardPage.js` | Dashboard: locators + `goToRoles()`, `expectLoggedIn()`, etc. |
-| `tests/fixtures/base.js` | Fixtures: `pageFactory`, `loginPage`, `dashboardPage`, `authenticatedPage` |
+|------|---------|
+| `config/constants.js` | Central config: base URL, paths, env keys, timeouts |
+| `pages/BasePage.js` | Base page object; shared `page`, `goto()`, `waitForLoadState()` |
+| `pages/PageFactory.js` | Factory that returns/caches `LoginPage`, `DashboardPage`, etc. |
+| `pages/LoginPage.js` | Login page: locators + `login()`, `expectOnLoginPage()` |
+| `pages/DashboardPage.js` | Dashboard: locators + `goToRoles()`, `expectLoggedIn()`, etc. |
+| `setup/globalSetup.js` | Runs once before all tests |
+| `setup/globalTeardown.js` | Runs once after all tests |
+| `tests/fixtures/base.js` | Fixtures, `beforeEach`/`afterEach`, screenshot on failure |
+
+---
+
+## Setup and teardown
+
+| Hook | Scope | Purpose |
+|------|-------|---------|
+| `globalSetup` | Once per run | Validate env, log start |
+| `globalTeardown` | Once per run | Log end, cleanup |
+| `beforeEach` | Per test | Per-test setup (extend in fixtures) |
+| `afterEach` | Per test | Screenshot on failure, cleanup |
+
+Defined in `playwright.config.js` (globalSetup/globalTeardown) and `tests/fixtures/base.js` (beforeEach/afterEach).
+
+---
+
+## Screenshot on failure
+
+- **Playwright default** – `screenshot: 'only-on-failure'` in config captures screenshots automatically.
+- **Custom teardown** – `afterEach` in fixtures saves additional screenshots to `test-results/screenshots/` when a test fails.
 
 ---
 
@@ -154,7 +176,7 @@ BackOffice_Automation/
 
 ## Authenticated tests
 
-Tests that perform login require credentials via environment variables. Names are defined in `config/constants.js` (`ENV_KEYS`); primary keys:
+Tests that perform login require credentials via environment variables. Names are in `config/constants.js` (`ENV_KEYS`):
 
 - `BO_MOBILE` or `TEST_MOBILE` – mobile number
 - `BO_PASSWORD` or `TEST_PASSWORD` – password
@@ -165,7 +187,7 @@ Example:
 BO_MOBILE=9123456789 BO_PASSWORD=yourpassword npm test
 ```
 
-Do not commit real credentials. Use a `.env` file locally (and add it to `.gitignore`) or set env in CI secrets.
+Do not commit real credentials. Use a `.env` file locally (in `.gitignore`) or CI secrets.
 
 ---
 
@@ -173,25 +195,26 @@ Do not commit real credentials. Use a `.env` file locally (and add it to `.gitig
 
 ### New page object
 
-1. Create a class in `tests/pages/` that **extends `BasePage`**.
+1. Create a class in `pages/` that **extends `BasePage`**.
 2. Define locators as getters and actions as async methods.
-3. In `tests/pages/PageFactory.js`, add a private property and a getter that instantiates and caches the new page object.
+3. In `pages/PageFactory.js`, add a getter that instantiates and caches the new page object.
 4. In `tests/fixtures/base.js`, add a fixture that returns `pageFactory.<yourPage>`.
 
 ### New test file
 
 1. Create a `*.spec.js` under `tests/`.
-2. Use the extended `test` and `expect` from `tests/fixtures/base.js`.
-3. Request the page objects you need via fixtures (e.g. `async ({ loginPage, dashboardPage }) => { ... }`).
+2. Use `test` and `expect` from `tests/fixtures/base.js`.
+3. Request page objects via fixtures (e.g. `async ({ loginPage, dashboardPage }) => { ... }`).
 
 ---
 
 ## Practices followed
 
-- **Page Object Model** – one class per screen/area; locators and actions encapsulated.
-- **Page Factory** – single place to obtain page objects; lazy creation and reuse per context.
-- **Base page** – shared behavior (navigation, wait) in `BasePage`; all POMs extend it.
-- **Central config** – URLs, paths, env keys, and timeouts in `config/constants.js`.
+- **Page Object Model** – one class per screen; locators and actions in `pages/`, tests in `tests/`.
+- **Page Factory** – single place to obtain page objects; lazy creation and reuse.
+- **Base page** – shared behavior in `BasePage`; all POMs extend it.
+- **Central config** – URLs, paths, env keys, timeouts in `config/constants.js`.
+- **Setup and teardown** – globalSetup/globalTeardown plus beforeEach/afterEach.
+- **Screenshot on failure** – built-in plus custom save to `test-results/screenshots/`.
 - **No hardcoded secrets** – credentials via environment variables only.
-- **Stable selectors** – preference for role-based and placeholder-based locators.
-- **Clear test vs page responsibility** – tests orchestrate; page objects expose actions and, where useful, assertion helpers.
+- **Stable selectors** – role-based and placeholder-based locators.

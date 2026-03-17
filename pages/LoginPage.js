@@ -1,7 +1,7 @@
 // @ts-check
 const { expect } = require('@playwright/test');
 const { BasePage } = require('./BasePage');
-const { PATHS } = require('../../config/constants');
+const { PATHS } = require('../config/constants');
 
 /**
  * Page Object for the Back Office Login page.
