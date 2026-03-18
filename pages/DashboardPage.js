@@ -20,11 +20,12 @@ class DashboardPage extends BasePage {
     return this.page.getByRole('link', { name: /roles/i }).first();
   }
 
-  /** Locator: Log out link or button */
+  /** Locator: Log out link, button, or generic element */
   get logoutLink() {
     return this.page
       .getByRole('link', { name: /log out/i })
       .or(this.page.getByRole('button', { name: /log out/i }))
+      .or(this.page.getByText(/log out/i))
       .first();
   }
 
@@ -35,7 +36,7 @@ class DashboardPage extends BasePage {
 
   /** Assert: user is logged in (logout visible) */
   async expectLoggedIn() {
-    await expect(this.logoutLink).toBeVisible({ timeout: 15000 });
+    await expect(this.logoutLink).toBeVisible({ timeout: 10_000 });
   }
 
   /** Action: navigate to Roles page */

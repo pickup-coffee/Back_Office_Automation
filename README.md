@@ -40,8 +40,9 @@ npx playwright install chromium
 
 | Command | Description |
 |--------|-------------|
-| `npm test` | Run all tests headless (default) |
+| `npm test` | Run all tests headless (5 workers, parallel) |
 | `npm run test:headed` | Run with browser window visible |
+| `npm run test:parallel:headed` | Run multiple tests at once (5 Chrome instances, headed) — not one after another |
 | `npm run test:ui` | Open Playwright Test UI |
 | `npm run test:debug` | Run in debug mode |
 | `npm run report` | Open last HTML report |
@@ -176,15 +177,26 @@ Defined in `playwright.config.js` (globalSetup/globalTeardown) and `tests/fixtur
 
 ## Authenticated tests
 
-Tests that perform login require credentials via environment variables. Names are in `config/constants.js` (`ENV_KEYS`):
+### Login with OTP
+
+The app uses a two-step login: mobile → OTP. Use `loginWithOtp(mobile, otp)`:
+
+```javascript
+await loginPage.goto();
+await loginPage.loginWithOtp('9123456789', '123456');
+await dashboardPage.expectLoggedIn();
+```
+
+### Login with env credentials
+
+Set environment variables (see `config/constants.js`):
 
 - `BO_MOBILE` or `TEST_MOBILE` – mobile number
-- `BO_PASSWORD` or `TEST_PASSWORD` – password
-
-Example:
+- `BO_OTP` or `TEST_OTP` – OTP (for OTP flow)
+- `BO_PASSWORD` or `TEST_PASSWORD` – password (if app uses password)
 
 ```bash
-BO_MOBILE=9123456789 BO_PASSWORD=yourpassword npm test
+BO_MOBILE=9123456789 BO_OTP=123456 npm test
 ```
 
 Do not commit real credentials. Use a `.env` file locally (in `.gitignore`) or CI secrets.

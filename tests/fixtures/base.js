@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const playwrightTest = require('@playwright/test');
 const { PageFactory } = require('../../pages/PageFactory');
-const { ENV_KEYS } = require('../../config/constants');
+const { ENV_KEYS, DEFAULT_TEST_CREDENTIALS } = require('../../config/constants');
 
 /**
  * Playwright test fixtures using Page Object Model and Page Factory.
@@ -23,12 +23,22 @@ exports.test = playwrightTest.test.extend({
   },
 
   authenticatedPage: async ({ pageFactory }, use) => {
-    const mobile = process.env[ENV_KEYS.MOBILE] || process.env[ENV_KEYS.MOBILE_ALT];
+    const mobile =
+      process.env[ENV_KEYS.MOBILE] ||
+      process.env[ENV_KEYS.MOBILE_ALT] ||
+      DEFAULT_TEST_CREDENTIALS.MOBILE;
+    const otp =
+      process.env[ENV_KEYS.OTP] ||
+      process.env[ENV_KEYS.OTP_ALT] ||
+      DEFAULT_TEST_CREDENTIALS.OTP;
     const password = process.env[ENV_KEYS.PASSWORD] || process.env[ENV_KEYS.PASSWORD_ALT];
-    if (mobile && password) {
-      const loginPage = pageFactory.loginPage;
-      await loginPage.goto();
-      await loginPage.login(mobile, password);
+    const creds = otp || password;
+    const loginPage = pageFactory.loginPage;
+    await loginPage.goto();
+    if (otp) {
+      await loginPage.loginWithOtp(mobile, otp);
+    } else {
+      await loginPage.login(mobile, password || '');
     }
     await use(pageFactory.page);
   },

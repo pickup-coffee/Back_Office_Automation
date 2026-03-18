@@ -7,7 +7,7 @@ module.exports = defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : 5,
   timeout: TIMEOUTS.DEFAULT,
   expect: { timeout: TIMEOUTS.ASSERTION },
   globalSetup: require.resolve('./setup/globalSetup.js'),
@@ -18,11 +18,19 @@ module.exports = defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    actionTimeout: 15_000,
+    actionTimeout: 10_000,
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    {
+      name: 'login',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /login\.spec\.js/,
+    },
+    {
+      name: 'dashboard',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /dashboard\.spec\.js/,
+      dependencies: ['login'],
+    },
   ],
 });

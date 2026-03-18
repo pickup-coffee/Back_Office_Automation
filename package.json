@@ -4,7 +4,9 @@
   "description": "Playwright automation for Pickup Coffee Back Office (staging)",
   "scripts": {
     "test": "playwright test",
+    "launch": "playwright test -g \"login page loads\" --project=chromium --headed",
     "test:headed": "playwright test --headed",
+    "test:parallel:headed": "playwright test --headed --workers=5",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "report": "playwright show-report"

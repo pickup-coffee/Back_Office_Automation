@@ -18,12 +18,20 @@ const ENV_KEYS = {
   MOBILE_ALT: 'TEST_MOBILE',
   PASSWORD: 'BO_PASSWORD',
   PASSWORD_ALT: 'TEST_PASSWORD',
+  OTP: 'BO_OTP',
+  OTP_ALT: 'TEST_OTP',
+};
+
+/** Fallback test credentials for staging (used when env vars not set) */
+const DEFAULT_TEST_CREDENTIALS = {
+  MOBILE: '9123456789',
+  OTP: '123456',
 };
 
 /** Default timeouts in milliseconds */
 const TIMEOUTS = {
-  DEFAULT: 30_000,
-  ASSERTION: 10_000,
+  DEFAULT: 25_000,
+  ASSERTION: 8_000,
 };
 
 module.exports = {
@@ -31,4 +39,5 @@ module.exports = {
   PATHS,
   ENV_KEYS,
   TIMEOUTS,
+  DEFAULT_TEST_CREDENTIALS,
 };
