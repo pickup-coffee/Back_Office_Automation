@@ -39,6 +39,8 @@ module.exports = defineConfig({
     },
     {
       name: 'setup',
+      /** Login + OTP + storage write can exceed default TIMEOUTS.DEFAULT on slow staging. */
+      timeout: 60_000,
       use: { ...devices['Desktop Chrome'] },
       testMatch: /auth\.setup\.spec\.js/,
       // Default: no `login` dep so `--project=orders` skips login tests. Set REQUIRE_LOGIN_BEFORE_SETUP=1 for login → setup ordering.

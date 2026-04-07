@@ -31,7 +31,10 @@ setup('authenticate staging user', async ({ browser }) => {
     try {
       const data = JSON.parse(fs.readFileSync(authFile, 'utf8'));
       if (hasAuthPayload(data)) {
-        const context = await browser.newContext({ storageState: authFile });
+        const context = await browser.newContext({
+          baseURL: BASE_URL,
+          storageState: authFile,
+        });
         const page = await context.newPage();
         try {
           await page.goto(BASE_URL, { waitUntil: 'load' });
@@ -48,7 +51,7 @@ setup('authenticate staging user', async ({ browser }) => {
     }
   }
 
-  const context = await browser.newContext();
+  const context = await browser.newContext({ baseURL: BASE_URL });
   const page = await context.newPage();
   const loginPage = new LoginPage(page);
   const maxAttempts = 3;

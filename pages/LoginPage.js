@@ -16,12 +16,14 @@ class LoginPage extends BasePage {
     this.path = PATHS.LOGIN;
   }
 
-  /** Locator: mobile number input (placeholders like "+63 9123456789", "Mobile Number") */
+  /** Locator: local mobile digits (after +63). Prefer role=textbox inside main — label often wraps a group. */
   get mobileInput() {
     return this.page
-      .getByPlaceholder(/mobile number|\+63|921\d+|912\d+/i)
-      .or(this.page.locator('input[type="tel"]').first())
-      .or(this.page.locator('main section input').first());
+      .locator('main')
+      .getByRole('textbox')
+      .first()
+      .or(this.page.getByPlaceholder(/mobile number|\+63|921\d+|912\d+/i))
+      .or(this.page.locator('input[type="tel"]').first());
   }
 
   /** Locator: password input (if present) */
@@ -107,12 +109,27 @@ class LoginPage extends BasePage {
   }
 
   /**
+   * Enter local mobile digits after +63. Staging uses a composite field where `fill()` often
+   * leaves LOG IN disabled — type with delay so client validation enables the button.
+   * @param {string} mobile – digits only or with spaces, e.g. 9123456789
+   */
+  async enterMobileNumber(mobile) {
+    const digits = String(mobile).replace(/\D/g, '');
+    const field = this.mobileInput;
+    await field.click();
+    await field.click({ clickCount: 3 });
+    await this.page.keyboard.press('Backspace');
+    await field.pressSequentially(digits, { delay: 35 });
+    await expect(this.loginButton).toBeEnabled({ timeout: 20_000 });
+  }
+
+  /**
    * Perform login with mobile and OTP (two-step: mobile → click → OTP → click).
    * @param {string} mobile – e.g. 9123456789
    * @param {string} otp – e.g. 123456
    */
   async loginWithOtp(mobile, otp) {
-    await this.mobileInput.fill(mobile);
+    await this.enterMobileNumber(mobile);
     await this.loginButton.click();
     await this.waitForOtpStepAfterMobileClick();
     await this.submitOtpAndFinishLogin(otp);
@@ -124,7 +141,7 @@ class LoginPage extends BasePage {
    * @param {string} [passwordOrOtp]
    */
   async login(mobile, passwordOrOtp = '') {
-    await this.mobileInput.fill(mobile);
+    await this.enterMobileNumber(mobile);
     if (passwordOrOtp) {
       const pw = this.passwordInput;
       const otp = this.otpInput;

@@ -25,8 +25,8 @@ const ENV_KEYS = {
 
 /** Staging test login: mobile + OTP (override with BO_MOBILE / BO_OTP env vars) */
 const DEFAULT_TEST_CREDENTIALS = {
-  MOBILE: '9123456789',
-  OTP: '123456',
+  MOBILE: process.env[ENV_KEYS.MOBILE] || process.env[ENV_KEYS.MOBILE_ALT] || '9123456789',
+  OTP: process.env[ENV_KEYS.OTP] || process.env[ENV_KEYS.OTP_ALT] || '123456',
 };
 
 /** Default timeouts in milliseconds */

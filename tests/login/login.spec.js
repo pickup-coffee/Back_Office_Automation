@@ -18,8 +18,7 @@ test.describe('Back Office Login', () => {
   test('mobile input is visible and focusable', async ({ loginPage }) => {
     await loginPage.goto();
     await expect(loginPage.mobileInput).toBeVisible();
-    await loginPage.mobileInput.focus();
-    await loginPage.mobileInput.fill(TEST_MOBILE);
+    await loginPage.enterMobileNumber(TEST_MOBILE);
     await expect(loginPage.mobileInput).toHaveValue(TEST_MOBILE);
   });
 
@@ -29,7 +28,7 @@ test.describe('Back Office Login', () => {
     dashboardPage,
   }) => {
     await loginPage.goto();
-    await loginPage.mobileInput.fill(TEST_MOBILE);
+    await loginPage.enterMobileNumber(TEST_MOBILE);
     await loginPage.loginButton.click();
     await loginPage.expectOtpStepVisible();
     await loginPage.submitOtpAndFinishLogin(TEST_OTP);
