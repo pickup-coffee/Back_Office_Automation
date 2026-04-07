@@ -2,56 +2,19 @@
 const path = require('path');
 const fs = require('fs');
 const playwrightTest = require('@playwright/test');
-const { PageFactory } = require('../../pages/PageFactory');
-const { ENV_KEYS, DEFAULT_TEST_CREDENTIALS } = require('../../config/constants');
+const baseCore = require('./base-core');
 
 /**
- * Playwright test fixtures using Page Object Model and Page Factory.
- * Includes setup/teardown hooks and screenshot on failure.
+ * Playwright test fixtures using Page Object Model (POM classes from `pages/`).
+ * Global hooks apply to `*.spec.js` files that use this fixture.
  */
-exports.test = playwrightTest.test.extend({
-  pageFactory: async ({ page }, use) => {
-    await use(new PageFactory(page));
-  },
+exports.test = baseCore.test;
+exports.expect = baseCore.expect;
 
-  loginPage: async ({ pageFactory }, use) => {
-    await use(pageFactory.loginPage);
-  },
-
-  dashboardPage: async ({ pageFactory }, use) => {
-    await use(pageFactory.dashboardPage);
-  },
-
-  authenticatedPage: async ({ pageFactory }, use) => {
-    const mobile =
-      process.env[ENV_KEYS.MOBILE] ||
-      process.env[ENV_KEYS.MOBILE_ALT] ||
-      DEFAULT_TEST_CREDENTIALS.MOBILE;
-    const otp =
-      process.env[ENV_KEYS.OTP] ||
-      process.env[ENV_KEYS.OTP_ALT] ||
-      DEFAULT_TEST_CREDENTIALS.OTP;
-    const password = process.env[ENV_KEYS.PASSWORD] || process.env[ENV_KEYS.PASSWORD_ALT];
-    const creds = otp || password;
-    const loginPage = pageFactory.loginPage;
-    await loginPage.goto();
-    if (otp) {
-      await loginPage.loginWithOtp(mobile, otp);
-    } else {
-      await loginPage.login(mobile, password || '');
-    }
-    await use(pageFactory.page);
-  },
-});
-
-exports.expect = playwrightTest.expect;
-
-// Setup: runs before each test
 playwrightTest.test.beforeEach(async () => {
   // Per-test setup (e.g. reset state, log)
 });
 
-// Teardown: runs after each test; captures screenshot on failure
 playwrightTest.test.afterEach(async ({ page }, testInfo) => {
   if (testInfo.status !== testInfo.expectedStatus && page) {
     const dir = path.join(process.cwd(), 'test-results', 'screenshots');

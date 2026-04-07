@@ -10,6 +10,7 @@ const BASE_URL = process.env.BASE_URL || 'https://staging.bo.pickup-coffee.net';
 const PATHS = {
   LOGIN: '/',
   ROLES: '/roles',
+  ORDERS: '/orders',
 };
 
 /** Environment variable names for test credentials (do not commit values) */
@@ -22,7 +23,7 @@ const ENV_KEYS = {
   OTP_ALT: 'TEST_OTP',
 };
 
-/** Fallback test credentials for staging (used when env vars not set) */
+/** Staging test login: mobile + OTP (override with BO_MOBILE / BO_OTP env vars) */
 const DEFAULT_TEST_CREDENTIALS = {
   MOBILE: '9123456789',
   OTP: '123456',
