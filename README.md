@@ -1,6 +1,6 @@
 # Back Office Automation (Pickup Coffee)
 
-Industry-standard **UI test automation** for the Pickup Coffee Back Office staging site, built with [Playwright](https://playwright.dev/) (JavaScript), **Page Object Model (POM)**, and a **Page Factory**. Tests and page objects are separated; config, setup, and teardown are centralized.
+Industry-standard **UI test automation** for the Pickup Coffee Back Office staging site, built with [Playwright](https://playwright.dev/) (JavaScript) and the **Page Object Model (POM)**. Tests and page objects are separated; config, setup, and teardown are centralized.
 
 **Target application:** https://staging.bo.pickup-coffee.net/
 
@@ -10,6 +10,7 @@ Industry-standard **UI test automation** for the Pickup Coffee Back Office stagi
 
 - [Setup](#setup)
 - [Running tests](#running-tests)
+- [Orders tests](#orders-tests)
 - [Page Object Model (POM)](#page-object-model-pom)
 - [Project structure](#project-structure)
 - [Setup and teardown](#setup-and-teardown)
@@ -40,9 +41,9 @@ npx playwright install chromium
 
 | Command | Description |
 |--------|-------------|
-| `npm test` | Run all tests headless (5 workers, parallel) |
-| `npm run test:headed` | Run with browser window visible |
-| `npm run test:parallel:headed` | Run multiple tests at once (5 Chrome instances, headed) — not one after another |
+| `npm test` | Run all tests headless (1 worker, sequential) |
+| `npm run test:headed` | Run full suite with browser visible (1 worker) |
+| `npm run test:headed:orders` | Run **Orders** + auth setup only (no login spec). For **login → setup → orders**, set `REQUIRE_LOGIN_BEFORE_SETUP=1` |
 | `npm run test:ui` | Open Playwright Test UI |
 | `npm run test:debug` | Run in debug mode |
 | `npm run report` | Open last HTML report |
@@ -53,6 +54,26 @@ Override base URL:
 BASE_URL=https://staging.bo.pickup-coffee.net npm test
 ```
 
+Stricter CI (run **login** project before **setup** so the login spec runs first):
+
+```bash
+REQUIRE_LOGIN_BEFORE_SETUP=1 npm test
+```
+
+---
+
+## Orders tests
+
+Orders specs live in [`tests/orders/orders.spec.js`](tests/orders/orders.spec.js): serial **`describe`** with UI coverage (search, filters, table), API-style checks (`waitForOrdersBackendAfter` after search submit and Apply Filters), and lightweight checks (reload budget, `main` landmark).
+
+Optional env for stricter API matching: **`ORDERS_API_URL_MATCH`** — if set, a response counts as “Orders backend” when its URL contains this substring (see [`tests/support/ordersNetwork.js`](tests/support/ordersNetwork.js)).
+
+**HTTP 429 (Too Many Requests):** Staging may rate-limit automated traffic. The failing call is often **`POST https://staging.api.pickup-coffee.net/backoffice/orders`**. Mitigations: navigation/reload **retries** ([`tests/support/rateLimit.js`](tests/support/rateLimit.js)), **`waitForOrdersBackendAfter`** ([`tests/support/ordersNetwork.js`](tests/support/ordersNetwork.js)) which **retries** search/filter API waits after a backoff, **`attach429ApiLogger`** (prints 429 URLs to the console), and optional **`TEST_THROTTLE_MS`** (pause after each Orders test). Env tuning: **`NAV_429_RETRIES`** / **`NAV_429_RETRY_MS`** (page loads), **`ORDERS_API_429_RETRIES`** / **`ORDERS_API_429_DELAY_MS`** (default `4` / `8000` for POST `/backoffice/orders`). The **orders** project uses a **120s** test timeout in `playwright.config.js` so those retries can finish.
+
+```bash
+TEST_THROTTLE_MS=800 ORDERS_API_429_DELAY_MS=12000 npm run test:headed:orders
+```
+
 ---
 
 ## Page Object Model (POM)
@@ -60,39 +81,35 @@ BASE_URL=https://staging.bo.pickup-coffee.net npm test
 This framework uses the **Page Object Model** with a clear separation:
 
 - **`pages/`** – Page objects (locators and actions); tests never import these directly.
-- **`tests/`** – Test specs only; they use fixtures that provide page objects.
+- **`tests/`** – Specs (`login/`, `dashboard/`, `orders/`); shared `fixtures/` for POM hooks (`base.js` / `base-core.js`).
 
 ### Concepts
 
 1. **Base Page (`pages/BasePage.js`)**  
    All page objects extend `BasePage`. It holds the Playwright `page` instance and common helpers (`goto(path)`, `waitForLoadState()`).
 
-2. **Page Objects (`pages/LoginPage.js`, `pages/DashboardPage.js`)**  
+2. **Page Objects (`pages/LoginPage.js`, `pages/DashboardPage.js`, `pages/OrdersPage.js`)**  
    Each class represents one screen:
    - **Locators** as getters (e.g. `mobileInput`, `loginButton`).
    - **Actions** as async methods (e.g. `login(mobile, password)`, `goToRoles()`).
    - **Assertions** as helper methods (e.g. `expectOnLoginPage()`, `expectLoggedIn()`).
 
-3. **Page Factory (`pages/PageFactory.js`)**  
-   Creates and caches page objects. Tests receive `loginPage`, `dashboardPage`, etc. via fixtures.
-
-4. **Fixtures (`tests/fixtures/base.js`)**  
-   Exposes `pageFactory`, `loginPage`, `dashboardPage`, `authenticatedPage`, plus setup/teardown hooks.
+3. **Fixtures (`tests/fixtures/base-core.js` / `base.js`)**  
+   For each test, fixtures build **one** page object per screen: `new LoginPage(page)`, `new DashboardPage(page)`, `new OrdersPage(page)`. Tests request `loginPage`, `dashboardPage`, `ordersPage`, or `authenticatedPage` (logs in then yields `page`)—they do **not** import POM classes in spec files.
 
 ### Flow
 
 ```
-Test (tests/*.spec.js)
-  → uses fixture (loginPage, dashboardPage)
-    → fixture uses PageFactory (pages/PageFactory.js)
-      → PageFactory returns LoginPage, DashboardPage (pages/)
-        → each page extends BasePage, uses config (config/constants.js)
+Test (tests/<feature>/*.spec.js)
+  → uses fixture (loginPage, dashboardPage, ordersPage, …)
+    → fixture: new LoginPage(page), etc. (tests/fixtures/base-core.js)
+      → each page class lives in pages/, extends BasePage (config/constants.js)
 ```
 
 ### Example
 
 ```javascript
-const { test, expect } = require('./fixtures/base');
+const { test, expect } = require('../fixtures/base');
 
 test('login page loads', async ({ loginPage }) => {
   await loginPage.goto();
@@ -106,6 +123,11 @@ test('navigate to roles after login', async ({ loginPage, dashboardPage }) => {
   await dashboardPage.goToRoles();
   await dashboardPage.expectOnRolesPage();
 });
+
+test('orders list', async ({ ordersPage }) => {
+  await ordersPage.goto();
+  await ordersPage.expectOnOrdersPage();
+});
 ```
 
 ---
@@ -118,17 +140,25 @@ BackOffice_Automation/
 │   └── constants.js          # BASE_URL, PATHS, ENV_KEYS, TIMEOUTS
 ├── pages/                    # Page Object Model (separate from tests)
 │   ├── BasePage.js           # Base class for all page objects
-│   ├── PageFactory.js        # Creates/caches page objects
 │   ├── LoginPage.js          # Login screen POM
-│   └── DashboardPage.js      # Dashboard (post-login) POM
+│   ├── DashboardPage.js      # Dashboard (post-login) POM
+│   └── OrdersPage.js         # Orders list POM
 ├── setup/
 │   ├── globalSetup.js        # Runs once before all tests
 │   └── globalTeardown.js     # Runs once after all tests
-├── tests/                    # Test specs only
+├── tests/
 │   ├── fixtures/
-│   │   └── base.js           # POM fixtures, setup/teardown, screenshot on failure
-│   ├── login.spec.js
-│   └── dashboard.spec.js
+│   │   ├── base-core.js      # POM fixtures only (no global hooks)
+│   │   └── base.js           # Re-exports core + screenshot on failure
+│   ├── login/
+│   │   └── login.spec.js     # Login flow tests
+│   ├── dashboard/
+│   │   └── dashboard.spec.js # Post-login / dashboard tests
+│   ├── orders/
+│   │   └── orders.spec.js     # Orders list UI + API-style + performance helpers
+│   └── support/
+│       ├── ordersNetwork.js  # Orders API response matching + 429-aware wait predicate
+│       └── rateLimit.js      # goto/reload retries on HTTP 429, API 429 logger
 ├── playwright.config.js
 ├── package.json
 └── README.md
@@ -138,12 +168,18 @@ BackOffice_Automation/
 |------|---------|
 | `config/constants.js` | Central config: base URL, paths, env keys, timeouts |
 | `pages/BasePage.js` | Base page object; shared `page`, `goto()`, `waitForLoadState()` |
-| `pages/PageFactory.js` | Factory that returns/caches `LoginPage`, `DashboardPage`, etc. |
 | `pages/LoginPage.js` | Login page: locators + `login()`, `expectOnLoginPage()` |
 | `pages/DashboardPage.js` | Dashboard: locators + `goToRoles()`, `expectLoggedIn()`, etc. |
+| `pages/OrdersPage.js` | Orders list: search, filters, table POM |
+| `tests/orders/orders.spec.js` | Orders: serial suite, network + performance checks |
+| `tests/support/ordersNetwork.js` | `waitForOrdersBackendAfter`, `matchOrdersBackendOrThrow429` |
+| `tests/support/rateLimit.js` | `gotoWith429Retry`, `reloadWith429Retry`, `attach429ApiLogger` |
 | `setup/globalSetup.js` | Runs once before all tests |
 | `setup/globalTeardown.js` | Runs once after all tests |
 | `tests/fixtures/base.js` | Fixtures, `beforeEach`/`afterEach`, screenshot on failure |
+| `tests/fixtures/base-core.js` | Core POM fixtures (used by `base.js`) |
+| `tests/login/login.spec.js` | Login-related specs |
+| `tests/dashboard/dashboard.spec.js` | Authenticated dashboard specs |
 
 ---
 
@@ -209,13 +245,12 @@ Do not commit real credentials. Use a `.env` file locally (in `.gitignore`) or C
 
 1. Create a class in `pages/` that **extends `BasePage`**.
 2. Define locators as getters and actions as async methods.
-3. In `pages/PageFactory.js`, add a getter that instantiates and caches the new page object.
-4. In `tests/fixtures/base.js`, add a fixture that returns `pageFactory.<yourPage>`.
+3. In `tests/fixtures/base-core.js`, add a fixture that does `await use(new YourPage(page))`.
 
 ### New test file
 
-1. Create a `*.spec.js` under `tests/`.
-2. Use `test` and `expect` from `tests/fixtures/base.js`.
+1. Create a feature folder under `tests/<feature>/` and add `*.spec.js` there.
+2. Use `test` and `expect` from `tests/fixtures/base.js` (`require('../fixtures/base')`).
 3. Request page objects via fixtures (e.g. `async ({ loginPage, dashboardPage }) => { ... }`).
 
 ---
@@ -223,10 +258,11 @@ Do not commit real credentials. Use a `.env` file locally (in `.gitignore`) or C
 ## Practices followed
 
 - **Page Object Model** – one class per screen; locators and actions in `pages/`, tests in `tests/`.
-- **Page Factory** – single place to obtain page objects; lazy creation and reuse.
+- **Fixtures** – `base-core.js` exposes `loginPage`, `dashboardPage`, `ordersPage` via `new` per test; specs use fixtures, not direct `require` of POM classes.
 - **Base page** – shared behavior in `BasePage`; all POMs extend it.
 - **Central config** – URLs, paths, env keys, timeouts in `config/constants.js`.
 - **Setup and teardown** – globalSetup/globalTeardown plus beforeEach/afterEach.
 - **Screenshot on failure** – built-in plus custom save to `test-results/screenshots/`.
 - **No hardcoded secrets** – credentials via environment variables only.
 - **Stable selectors** – role-based and placeholder-based locators.
+- **Orders** – `tests/orders/orders.spec.js`; optional `ORDERS_API_URL_MATCH` for API checks.

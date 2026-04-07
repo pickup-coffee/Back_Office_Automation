@@ -3,15 +3,19 @@
   "version": "1.0.0",
   "description": "Playwright automation for Pickup Coffee Back Office (staging)",
   "scripts": {
-    "test": "playwright test",
-    "launch": "playwright test -g \"login page loads\" --project=chromium --headed",
-    "test:headed": "playwright test --headed",
-    "test:parallel:headed": "playwright test --headed --workers=5",
+    "test": "playwright test --workers=1",
+    "launch": "playwright test -g \"login page loads\" --project=login --headed",
+    "test:headed": "playwright test --headed --workers=1",
+    "test:headed:orders": "playwright test --headed --workers=1 --project=orders",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "report": "playwright show-report"
   },
-  "keywords": ["playwright", "automation", "e2e"],
+  "keywords": [
+    "playwright",
+    "automation",
+    "e2e"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {

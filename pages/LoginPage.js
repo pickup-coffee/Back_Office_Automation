@@ -16,11 +16,12 @@ class LoginPage extends BasePage {
     this.path = PATHS.LOGIN;
   }
 
-  /** Locator: mobile number input */
+  /** Locator: mobile number input (placeholders like "+63 9123456789", "Mobile Number") */
   get mobileInput() {
     return this.page
-      .getByPlaceholder(/mobile number|921\d+/i)
-      .or(this.page.locator('input[type="tel"]').first());
+      .getByPlaceholder(/mobile number|\+63|921\d+|912\d+/i)
+      .or(this.page.locator('input[type="tel"]').first())
+      .or(this.page.locator('main section input').first());
   }
 
   /** Locator: password input (if present) */
@@ -31,7 +32,7 @@ class LoginPage extends BasePage {
       .first();
   }
 
-  /** Locator: OTP input (appears after mobile submit) */
+  /** Locator: OTP field (must not match mobile — do not use generic "main textbox") */
   get otpInput() {
     return this.page
       .getByPlaceholder(/otp|enter.*code|verification|^\d{6}$/i)
@@ -49,17 +50,60 @@ class LoginPage extends BasePage {
       .first();
   }
 
-  /** Locator: Submit/Verify button (after OTP entry) */
+  /** Locator: primary action on OTP step (SUBMIT — may be disabled until OTP is complete) */
   get submitOtpButton() {
     return this.page
-      .getByRole('button', { name: /verify|confirm|submit|log in/i })
+      .getByRole('button', { name: /^submit$/i })
+      .or(this.page.getByRole('button', { name: /verify|confirm|submit|log in/i }))
       .or(this.page.getByRole('link', { name: /verify|confirm|submit|log in/i }))
       .first();
+  }
+
+  /** Locator: GO BACK on OTP step (not always a link; match visible text) */
+  get goBackControl() {
+    return this.page.getByText(/go back/i).first();
   }
 
   /** Navigate to the login page */
   async goto() {
     await super.goto(this.path);
+  }
+
+  /**
+   * After clicking LOG IN on the mobile step, wait until the OTP step is shown.
+   * Retries LOG IN a few times — staging can drop the first request or show the OTP UI late.
+   */
+  async waitForOtpStepAfterMobileClick() {
+    const otpPrimary = this.page
+      .getByRole('button', { name: /^submit$/i })
+      .or(this.page.getByRole('button', { name: /^(verify|confirm)$/i }));
+    const maxRounds = 4;
+    for (let round = 0; round < maxRounds; round++) {
+      try {
+        await otpPrimary.waitFor({ state: 'visible', timeout: round === 0 ? 14_000 : 10_000 });
+        return;
+      } catch (e) {
+        if (round === maxRounds - 1) {
+          throw e;
+        }
+        await this.loginButton.click();
+        await this.page.waitForTimeout(500);
+      }
+    }
+  }
+
+  /**
+   * On the OTP step only: enter OTP and submit (mobile step must already be done).
+   * @param {string} otp – e.g. 123456
+   */
+  async submitOtpAndFinishLogin(otp) {
+    const otpField = this.otpInput;
+    await otpField.click();
+    await otpField.clear();
+    await otpField.pressSequentially(otp, { delay: 40 });
+    const submitBtn = this.page.getByRole('button', { name: /submit/i });
+    await expect(submitBtn).toBeEnabled({ timeout: 15_000 });
+    await submitBtn.click();
   }
 
   /**
@@ -70,10 +114,8 @@ class LoginPage extends BasePage {
   async loginWithOtp(mobile, otp) {
     await this.mobileInput.fill(mobile);
     await this.loginButton.click();
-    const otpField = this.otpInput;
-    await otpField.waitFor({ state: 'visible', timeout: 20_000 });
-    await otpField.fill(otp);
-    await this.submitOtpButton.or(this.loginButton).first().click();
+    await this.waitForOtpStepAfterMobileClick();
+    await this.submitOtpAndFinishLogin(otp);
   }
 
   /**
@@ -106,6 +148,13 @@ class LoginPage extends BasePage {
   async expectOnLoginPage() {
     await expect(this.page).toHaveURL(new RegExp(this.path));
     await this.expectLoginVisible();
+  }
+
+  /** Assert: OTP step (SUBMIT, GO BACK) visible after mobile step */
+  async expectOtpStepVisible() {
+    await this.waitForOtpStepAfterMobileClick();
+    await expect(this.otpInput).toBeVisible({ timeout: 10_000 });
+    await expect(this.goBackControl).toBeVisible();
   }
 }
 
