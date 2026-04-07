@@ -85,9 +85,17 @@ class OrdersPage extends BasePage {
     return this.page.getByText(/item not found/i);
   }
 
-  /** Date order range (placeholder from staging) */
+  /**
+   * Date order — staging uses textbox "Datepicker input" and a `… calendar` button, not always placeholder "Select date range".
+   */
   get filterDateRangeInput() {
-    return this.page.getByPlaceholder(/select date range/i);
+    const panel = this.page.getByRole('main');
+    return panel
+      .getByRole('button', { name: /calendar/i })
+      .or(panel.getByRole('textbox', { name: /datepicker input/i }))
+      .or(panel.getByPlaceholder(/select date range/i))
+      .or(panel.getByRole('button', { name: /select date range/i }))
+      .first();
   }
 
   /** Primary action in expanded filter block */
@@ -95,24 +103,37 @@ class OrdersPage extends BasePage {
     return this.page.getByRole('button', { name: /apply filters/i });
   }
 
-  /** Payment Method combobox in filter panel */
+  /**
+   * Label + "All" dropdown — find the **row** `div` (ancestor of the label that contains the button).
+   * @param {string} labelText — e.g. "Payment Method", "Store Branch"
+   * @returns {import('@playwright/test').Locator}
+   */
+  filterRowDropdown(labelText) {
+    return this.ordersFilterCard
+      .getByText(labelText, { exact: true })
+      .locator('xpath=ancestor::*[.//button][1]')
+      .getByRole('button', { name: /^All$/i })
+      .first();
+  }
+
+  /** Payment Method dropdown trigger */
   get filterPaymentMethodCombobox() {
-    return this.page.getByRole('combobox', { name: /payment method/i });
+    return this.filterRowDropdown('Payment Method');
   }
 
-  /** Payment Status combobox */
+  /** Payment Status dropdown trigger */
   get filterPaymentStatusCombobox() {
-    return this.page.getByRole('combobox', { name: /payment status/i });
+    return this.filterRowDropdown('Payment Status');
   }
 
-  /** Order Status combobox */
+  /** Order Status dropdown trigger */
   get filterOrderStatusCombobox() {
-    return this.page.getByRole('combobox', { name: /order status/i });
+    return this.filterRowDropdown('Order Status');
   }
 
-  /** Store Branch combobox */
+  /** Store Branch dropdown trigger */
   get filterStoreBranchCombobox() {
-    return this.page.getByRole('combobox', { name: /store branch/i });
+    return this.filterRowDropdown('Store Branch');
   }
 
   /** Logistics option checkboxes */
@@ -180,19 +201,24 @@ class OrdersPage extends BasePage {
     await this.clearAllFiltersLink.click();
   }
 
+  /** Region of `main` that contains Apply Filters (dropdowns + checkboxes live here). */
+  get ordersFilterCard() {
+    return this.page.locator('main').filter({
+      has: this.page.getByRole('button', { name: /apply filters/i }),
+    });
+  }
+
   /** Open Filters accordion/panel until Apply Filters is visible. */
   async openFiltersPanel() {
     await this.filtersControl.click();
     await expect(this.applyFiltersButton).toBeVisible({ timeout: 10_000 });
   }
 
-  /** Assert expanded filter panel controls are present (labels from staging UI). */
+  /** Assert expanded filter panel controls are present (staging uses custom widgets, not always combobox roles). */
   async expectFilterPanelFieldsVisible() {
     await expect(this.filterDateRangeInput).toBeVisible({ timeout: 10_000 });
-    await expect(this.filterPaymentMethodCombobox).toBeVisible();
-    await expect(this.filterPaymentStatusCombobox).toBeVisible();
-    await expect(this.filterOrderStatusCombobox).toBeVisible();
-    await expect(this.filterStoreBranchCombobox).toBeVisible();
+    const allDropdowns = this.ordersFilterCard.getByRole('button', { name: /^All$/i });
+    await expect(allDropdowns).toHaveCount(4);
     await expect(this.filterLogisticsPandago).toBeVisible();
     await expect(this.filterLogisticsAngkas).toBeVisible();
     await expect(this.filterOrderMethodSelfPickup).toBeVisible();

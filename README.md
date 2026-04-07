@@ -147,15 +147,16 @@ BackOffice_Automation/
 │   ├── globalSetup.js        # Runs once before all tests
 │   └── globalTeardown.js     # Runs once after all tests
 ├── tests/
+│   ├── auth.setup.spec.js    # Setup project: writes `.auth/bo-user.json` for dashboard/orders
 │   ├── fixtures/
 │   │   ├── base-core.js      # POM fixtures only (no global hooks)
 │   │   └── base.js           # Re-exports core + screenshot on failure
 │   ├── login/
-│   │   └── login.spec.js     # Login flow tests
+│   │   └── login.spec.js     # Login project: unauthenticated login flows
 │   ├── dashboard/
-│   │   └── dashboard.spec.js # Post-login / dashboard tests
+│   │   └── dashboard.spec.js # Dashboard project (depends on setup)
 │   ├── orders/
-│   │   └── orders.spec.js     # Orders list UI + API-style + performance helpers
+│   │   └── orders.spec.js    # Orders project (depends on setup)
 │   └── support/
 │       ├── ordersNetwork.js  # Orders API response matching + 429-aware wait predicate
 │       └── rateLimit.js      # goto/reload retries on HTTP 429, API 429 logger
@@ -171,15 +172,16 @@ BackOffice_Automation/
 | `pages/LoginPage.js` | Login page: locators + `login()`, `expectOnLoginPage()` |
 | `pages/DashboardPage.js` | Dashboard: locators + `goToRoles()`, `expectLoggedIn()`, etc. |
 | `pages/OrdersPage.js` | Orders list: search, filters, table POM |
-| `tests/orders/orders.spec.js` | Orders: serial suite, network + performance checks |
 | `tests/support/ordersNetwork.js` | `waitForOrdersBackendAfter`, `matchOrdersBackendOrThrow429` |
 | `tests/support/rateLimit.js` | `gotoWith429Retry`, `reloadWith429Retry`, `attach429ApiLogger` |
 | `setup/globalSetup.js` | Runs once before all tests |
 | `setup/globalTeardown.js` | Runs once after all tests |
 | `tests/fixtures/base.js` | Fixtures, `beforeEach`/`afterEach`, screenshot on failure |
 | `tests/fixtures/base-core.js` | Core POM fixtures (used by `base.js`) |
-| `tests/login/login.spec.js` | Login-related specs |
-| `tests/dashboard/dashboard.spec.js` | Authenticated dashboard specs |
+| `tests/auth.setup.spec.js` | **setup** project: staging auth file for saved session |
+| `tests/login/login.spec.js` | **login** project: login UI and OTP flow |
+| `tests/dashboard/dashboard.spec.js` | **dashboard** project: post-login dashboard |
+| `tests/orders/orders.spec.js` | **orders** project: Orders list automation |
 
 ---
 
