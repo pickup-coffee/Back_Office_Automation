@@ -3,16 +3,28 @@ const path = require('path');
 const fs = require('fs');
 const playwrightTest = require('@playwright/test');
 const baseCore = require('./base-core');
+const { stepPause, stepPauseAfterTest } = require('../support/stepPause');
 
 /**
  * Playwright test fixtures using Page Object Model (POM classes from `pages/`).
  * Global hooks apply to `*.spec.js` files that use this fixture.
+ *
+ * **Pauses:** ~400 ms before each test (`stepPause`); **~1 s after each test** (`stepPauseAfterTest`)
+ * so you can see the result before the next case. `PW_STEP_PAUSE_MS=0` disables all; tune with
+ * `PW_STEP_PAUSE_AFTER_MS` (after-test only). CI: off by default. Use `PW_SLOW_MO_MS` for slower clicks.
  */
 exports.test = baseCore.test;
 exports.expect = baseCore.expect;
 
-playwrightTest.test.beforeEach(async () => {
-  // Per-test setup (e.g. reset state, log)
+playwrightTest.test.beforeEach(async ({ page }) => {
+  await stepPause(page, 'test-start');
+});
+
+/**
+ * ~1s pause after each test (local default). Hook order: failure screenshot runs first, then this pause.
+ */
+playwrightTest.test.afterEach(async ({ page }) => {
+  await stepPauseAfterTest(page);
 });
 
 playwrightTest.test.afterEach(async ({ page }, testInfo) => {

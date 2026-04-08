@@ -8,6 +8,7 @@ const fs = require('fs');
 const { test: setup, expect } = require('@playwright/test');
 const { LoginPage } = require('../pages/LoginPage');
 const { DEFAULT_TEST_CREDENTIALS, BASE_URL } = require('../config/constants');
+const { stepPause } = require('./support/stepPause');
 
 const authFile = path.join(__dirname, '..', '.auth', 'bo-user.json');
 
@@ -39,6 +40,7 @@ setup('authenticate staging user', async ({ browser }) => {
         try {
           await page.goto(BASE_URL, { waitUntil: 'load' });
           await expect(page.getByText(/log out/i)).toBeVisible({ timeout: 30_000 });
+          await stepPause(page, 'auth-reuse-ok');
           await context.storageState({ path: authFile });
           await context.close();
           return;
@@ -64,6 +66,7 @@ setup('authenticate staging user', async ({ browser }) => {
         DEFAULT_TEST_CREDENTIALS.OTP
       );
       await expect(page.getByText(/log out/i)).toBeVisible({ timeout: 30_000 });
+      await stepPause(page, 'auth-login-ok');
       break;
     } catch (e) {
       if (attempt === maxAttempts) {

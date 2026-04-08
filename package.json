@@ -7,6 +7,8 @@
     "launch": "playwright test -g \"login page loads\" --project=login --headed",
     "test:headed": "playwright test --headed --workers=1",
     "test:headed:orders": "playwright test --headed --workers=1 --project=orders",
+    "test:headed:staff": "playwright test --headed --workers=1 --project=staff",
+    "test:headed:staff:watch": "PW_SLOW_MO_MS=200 playwright test --headed --workers=1 --project=staff",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "report": "playwright show-report"

@@ -8,6 +8,9 @@ const authStorageState = path.join(__dirname, '.auth', 'bo-user.json');
 /** When set to `1`, `setup` runs after `login` (stricter ordering; login spec refreshes `.auth` first). */
 const requireLoginBeforeSetup = process.env.REQUIRE_LOGIN_BEFORE_SETUP === '1';
 
+/** Slows each Playwright action (ms). Set `PW_SLOW_MO_MS=300` with `--headed` to watch tests. */
+const slowMoMs = Number(process.env.PW_SLOW_MO_MS || 0);
+
 module.exports = defineConfig({
   testDir: './tests',
   // Parallel test execution disabled for now (single worker, sequential)
@@ -26,6 +29,8 @@ module.exports = defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     actionTimeout: 10_000,
+    /** With `PW_SLOW_MO_MS`, slows every browser action in all projects (good with `--headed`). */
+    ...(slowMoMs > 0 ? { launchOptions: { slowMo: slowMoMs } } : {}),
   },
   projects: [
     {
@@ -64,6 +69,16 @@ module.exports = defineConfig({
         storageState: authStorageState,
       },
       testMatch: /orders\/orders\.spec\.js/,
+      dependencies: ['setup'],
+    },
+    {
+      name: 'staff',
+      timeout: 60_000,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: authStorageState,
+      },
+      testMatch: /staff\/staff\.spec\.js/,
       dependencies: ['setup'],
     },
   ],

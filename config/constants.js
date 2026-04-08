@@ -11,6 +11,7 @@ const PATHS = {
   LOGIN: '/',
   ROLES: '/roles',
   ORDERS: '/orders',
+  STAFF: '/staff',
 };
 
 /** Environment variable names for test credentials (do not commit values) */

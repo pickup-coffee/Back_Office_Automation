@@ -8,6 +8,7 @@ const playwrightTest = require('@playwright/test');
 const { LoginPage } = require('../../pages/LoginPage');
 const { DashboardPage } = require('../../pages/DashboardPage');
 const { OrdersPage } = require('../../pages/OrdersPage');
+const { StaffPage } = require('../../pages/StaffPage');
 const { ENV_KEYS, DEFAULT_TEST_CREDENTIALS } = require('../../config/constants');
 
 exports.test = playwrightTest.test.extend({
@@ -21,6 +22,10 @@ exports.test = playwrightTest.test.extend({
 
   ordersPage: async ({ page }, use) => {
     await use(new OrdersPage(page));
+  },
+
+  staffPage: async ({ page }, use) => {
+    await use(new StaffPage(page));
   },
 
   authenticatedPage: async ({ page, loginPage }, use) => {
