@@ -62,13 +62,6 @@ REQUIRE_LOGIN_BEFORE_SETUP=1 npm test
 
 ---
 
-## Orders tests
-
-Orders specs live in [`tests/orders/orders.spec.js`](tests/orders/orders.spec.js): serial **`describe`** with UI coverage (search, filters, table), API-style checks (`waitForOrdersBackendAfter` after search submit and Apply Filters), and lightweight checks (reload budget, `main` landmark).
-
-Optional env for stricter API matching: **`ORDERS_API_URL_MATCH`** — if set, a response counts as “Orders backend” when its URL contains this substring (see [`tests/support/ordersNetwork.js`](tests/support/ordersNetwork.js)).
-
-**HTTP 429 (Too Many Requests):** Staging may rate-limit automated traffic. The failing call is often **`POST https://staging.api.pickup-coffee.net/backoffice/orders`**. Mitigations: navigation/reload **retries** ([`tests/support/rateLimit.js`](tests/support/rateLimit.js)), **`waitForOrdersBackendAfter`** ([`tests/support/ordersNetwork.js`](tests/support/ordersNetwork.js)) which **retries** search/filter API waits after a backoff, **`attach429ApiLogger`** (prints 429 URLs to the console), and optional **`TEST_THROTTLE_MS`** (pause after each Orders test). Env tuning: **`NAV_429_RETRIES`** / **`NAV_429_RETRY_MS`** (page loads), **`ORDERS_API_429_RETRIES`** / **`ORDERS_API_429_DELAY_MS`** (default `4` / `8000` for POST `/backoffice/orders`). The **orders** project uses a **120s** test timeout in `playwright.config.js` so those retries can finish.
 
 ```bash
 TEST_THROTTLE_MS=800 ORDERS_API_429_DELAY_MS=12000 npm run test:headed:orders
