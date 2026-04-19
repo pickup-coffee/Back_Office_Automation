@@ -9,6 +9,7 @@ const { LoginPage } = require('../../pages/LoginPage');
 const { DashboardPage } = require('../../pages/DashboardPage');
 const { OrdersPage } = require('../../pages/OrdersPage');
 const { StaffPage } = require('../../pages/StaffPage');
+const { BranchPage } = require('../../pages/BranchPage');
 const { ENV_KEYS, DEFAULT_TEST_CREDENTIALS } = require('../../config/constants');
 
 exports.test = playwrightTest.test.extend({
@@ -26,6 +27,10 @@ exports.test = playwrightTest.test.extend({
 
   staffPage: async ({ page }, use) => {
     await use(new StaffPage(page));
+  },
+
+  branchPage: async ({ page }, use) => {
+    await use(new BranchPage(page));
   },
 
   authenticatedPage: async ({ page, loginPage }, use) => {
