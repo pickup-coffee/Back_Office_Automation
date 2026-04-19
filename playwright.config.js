@@ -40,7 +40,7 @@ module.exports = defineConfig({
         ...devices['Desktop Chrome'],
         storageState: { cookies: [], origins: [] },
       },
-      testMatch: /login\.spec\.js/,
+      testMatch: /login\/login\.spec\.js/,
     },
     {
       name: 'setup',
@@ -79,6 +79,16 @@ module.exports = defineConfig({
         storageState: authStorageState,
       },
       testMatch: /staff\/staff\.spec\.js/,
+      dependencies: ['setup'],
+    },
+    {
+      name: 'branch',
+      timeout: 60_000,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: authStorageState,
+      },
+      testMatch: /branch\/branch\.spec\.js/,
       dependencies: ['setup'],
     },
   ],
