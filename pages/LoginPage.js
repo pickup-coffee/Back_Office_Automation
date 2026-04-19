@@ -114,12 +114,8 @@ class LoginPage extends BasePage {
    * @param {string} mobile – digits only or with spaces, e.g. 9123456789
    */
   async enterMobileNumber(mobile) {
-    const digits = String(mobile).replace(/\D/g, '');
     const field = this.mobileInput;
-    await field.click();
-    await field.click({ clickCount: 3 });
-    await this.page.keyboard.press('Backspace');
-    await field.pressSequentially(digits, { delay: 35 });
+    await this.replaceFieldWithDigits(field, mobile);
     await expect(this.loginButton).toBeEnabled({ timeout: 20_000 });
   }
 

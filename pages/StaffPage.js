@@ -96,6 +96,14 @@ class StaffPage extends BasePage {
     return this.page.getByLabel(/^email address/i).or(this.page.getByPlaceholder(/pickupcoffee\.com/i));
   }
 
+  get ageInput() {
+    return this.page
+      .getByLabel(/^age$/i)
+      .or(this.page.getByRole('spinbutton', { name: /^age$/i }))
+      .or(this.page.getByPlaceholder(/age|ex\.\s*2[01]/i))
+      .first();
+  }
+
   get accountAccessTrigger() {
     return this.page
       .getByRole('combobox', { name: /account access level/i })
@@ -174,11 +182,12 @@ class StaffPage extends BasePage {
   }
 
   async fillCompositeMobileDigits(field, mobile) {
-    const digits = String(mobile).replace(/\D/g, '');
-    await field.click();
-    await field.click({ clickCount: 3 });
-    await this.page.keyboard.press('Backspace');
-    await field.pressSequentially(digits, { delay: 35 });
+    await this.replaceFieldWithDigits(field, mobile);
+  }
+
+  async fillAge(age) {
+    await this.replaceFieldWithDigits(this.ageInput, String(age));
+    await this.ageInput.blur();
   }
 
   async selectRoleInSidebar(roleLabel) {

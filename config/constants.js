@@ -13,6 +13,8 @@ const PATHS = {
   ORDERS: '/orders',
   STAFF: '/staff',
   BRANCHES: '/branches',
+  GIFT_CARDS_SETTINGS:
+    process.env.BO_GIFT_CARDS_SETTINGS_PATH || '/marketing-tools/gift-cards/settings',
 };
 
 /** Environment variable names for test credentials (do not commit values) */

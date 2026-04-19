@@ -145,6 +145,7 @@ test.describe('Staff — full create (staging write)', () => {
       first: `Auto${id}`,
       last: `Test${id}`,
       mobile: `9${String(Math.floor(100000000 + Math.random() * 90000000))}`,
+      age: String(20 + Math.floor(Math.random() * 15)),
       emp: String(Math.floor(100000 + Math.random() * 900000)),
       email: `auto.${id}@pickupcoffee.com`,
     };
@@ -154,6 +155,7 @@ test.describe('Staff — full create (staging write)', () => {
     await staffPage.firstNameInput.fill(created.first);
     await staffPage.lastNameInput.fill(created.last);
     await staffPage.fillCompositeMobileDigits(staffPage.staffMobileTextbox, created.mobile);
+    await staffPage.fillAge(created.age);
     await staffPage.employeeNumberInput.fill(created.emp);
     await staffPage.jobTitleInput.fill('QA Automation');
     await staffPage.emailInput.fill(created.email);
