@@ -91,5 +91,15 @@ module.exports = defineConfig({
       testMatch: /branch\/branch\.spec\.js/,
       dependencies: ['setup'],
     },
+    {
+      name: 'wallet',
+      timeout: 60_000,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: authStorageState,
+      },
+      testMatch: /wallet\/.*\.spec\.js/,
+      dependencies: ['setup'],
+    },
   ],
 });
